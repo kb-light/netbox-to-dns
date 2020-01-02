@@ -1,0 +1,22 @@
+---
+# defaults file for netbox-to-dns
+nbdns_default_domain: example.com
+nbdns_nameserver:
+- ns.example.com
+nbdns_email: ns@example.com
+nbdns_serial: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}{{ ansible_date_time.hour }}"
+nbdns_refresh: 3H
+nbdns_retry: 1H
+nbdns_expire: 1W
+nbdns_min_ttl: 1D
+nbdns_zones_path: /etc/bind
+nbdns_zones: []
+#- domain: example.com
+#  entries:
+#  - name: www.example.com
+#    type: CNAME
+#    value: host01.example.com.
+#- domain: 2.0.192.in-addr.arpa
+#  subnet: 192.0.2.0/24
+nbdns_netbox_api_url: https://netbox.example.com/api
+nbdns_netbox_token: 0123456789abcdef0123456789abcdef01234567

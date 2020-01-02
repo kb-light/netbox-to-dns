@@ -1,0 +1,28 @@
+- name: "get current zone file - {{ nbdns_zone.domain }}"
+  slurp:
+    src: "{{ nbdns_zones_path }}/{{ nbdns_zone.filename | default(nbdns_zone.domain + '.zone') }}"
+  ignore_errors: yes
+  register: nbdns_zone_file
+
+- name: "check for changes excluding serialnumber - {{ nbdns_zone.domain }}"
+  template:
+    src: zone.j2
+    dest: "{{ nbdns_zones_path }}/{{ nbdns_zone.filename | default(nbdns_zone.domain + '.zone') }}"
+    lstrip_blocks: yes
+  vars:
+    nbdns_serial: "{{ nbdns_zone_file.content | b64decode | regex_search('(\\d*)\\s*;\\s*[Ss]erial') | regex_search('\\d*') }}"
+    nbdns_entries: "{{ nbdns_zone.entries | default(None) }}"
+  check_mode: yes
+  diff: no
+  register: nbdns_zone_state
+  when: not nbdns_zone_file.failed
+
+- name: "update zone file - {{ nbdns_zone.domain }}"
+  template:
+    src: zone.j2
+    dest: "{{ nbdns_zones_path }}/{{ nbdns_zone.filename | default(nbdns_zone.domain + '.zone') }}"
+    lstrip_blocks: yes
+  vars:
+    nbdns_entries: "{{ nbdns_zone.entries | default(None) }}"
+  notify: restart nameserver
+  when: nbdns_zone_state.changed or nbdns_zone_file.failed

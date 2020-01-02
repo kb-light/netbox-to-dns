@@ -1,0 +1,14 @@
+- name: install netaddr
+  pip:
+    name: netaddr
+  check_mode: yes
+  register: nbdns_req_netaddr
+  delegate_to: localhost
+  run_once: yes
+
+- name: Prerequirements
+  assert:
+    that: nbdns_req_netaddr.changed == false
+    fail_msg: Please install python package 'netaddr'
+    quiet: yes
+  run_once: yes

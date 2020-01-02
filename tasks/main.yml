@@ -1,0 +1,22 @@
+---
+# tasks file for netbox-to-dns
+- name: include prerequirements
+  include_tasks:
+    file: prereq_localhost.yml
+
+- name: get data from netbox
+  uri:
+    url: "{{ nbdns_netbox_api_url }}/ipam/ip-addresses/?limit=0"
+    method: GET
+    headers:
+      Authorization: "Token {{ nbdns_netbox_token }}"
+  check_mode: no
+  register: nbdns_ipaddresses
+
+- name: include
+  include_tasks:
+    file: zone.yml
+  loop: "{{ nbdns_zones }}"
+  loop_control:
+    label: "{{ nbdns_zone.domain }}"
+    loop_var: nbdns_zone

@@ -1,0 +1,38 @@
+{% set ipaddresses = nbdns_ipaddresses.json.results %}
+; {{ nbdns_zone.domain }}
+$TTL 3600
+{{ nbdns_zone.domain }}. IN SOA	{{ nbdns_nameserver[0] }}.	{{ nbdns_email | replace("@", ".") }}. (
+				{{ nbdns_serial.ljust(11)  }} ; serial
+				{{ nbdns_refresh.ljust(11) }} ; refresh
+				{{ nbdns_retry.ljust(11)   }} ; retry
+				{{ nbdns_expire.ljust(11)  }} ; expire
+				{{ (nbdns_min_ttl + ')').ljust(11) }} ; minimum ttl
+
+{% for ns in nbdns_nameserver %}
+{{ "".ljust(25) }} IN NS   {{ ns }}.
+{% endfor %}
+
+{% if nbdns_zone.subnet is defined %}
+  {% for ip in ipaddresses %}
+    {% if ip.address | ipaddr(nbdns_zone.subnet) %}
+{% if not ip.interface and ip.dns_name == "" %};{% endif %}{{ ip.address | ipaddr('revdns') }} IN PTR  {% if ip.dns_name != "" %}{{ ip.dns_name }}{% else %}{% if ip.interface %}{{ ip.interface.name | lower() | replace(".", "_") + "." + ip.interface.device.name }}{% endif %}.{{ nbdns_default_domain }}{% endif %}.
+    {% endif %}
+  {% endfor %}
+
+{%- else %}
+  {% for ip in ipaddresses %}
+    {% if nbdns_zone.domain == nbdns_default_domain and ip.dns_name == "" %}
+{% if ip.interface %}{{ (ip.interface.name | replace(".", "_") + "." + ip.interface.device.name).lower().ljust(25) }}{% else %}{{ ";".ljust(25) }}{% endif %} IN {% if ip.family.value == 4 %}A   {% else %}AAAA{% endif %} {{ ip.address | ipaddr('address') }}
+    {% endif %}
+
+    {%- if ip.dns_name | regex_search(nbdns_zone.domain + '$') %}
+{{ (ip.dns_name + ".").ljust(25) }} IN {% if ip.family.value == 4 %}A   {% else %}AAAA{% endif %} {{ ip.address | ipaddr('address') }}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{%- if nbdns_zone.entries is defined %}
+  {% for entry in nbdns_zone.entries %}
+{{ entry.name.ljust(25) }} IN {{ entry.type.ljust(4) }} {{ entry.data }}
+  {% endfor %}
+{% endif %}
