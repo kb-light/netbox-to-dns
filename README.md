@@ -6,26 +6,59 @@ Ansible role to generate DNS zone files out of Netbox.
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+This role needs the Python package `netaddr` installed on the Ansible Controlnode.
+Additional one need to define a handler called `restart nameserver` which will be executed when a zone file changes.
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+You need to set the folllowing variables. For more configuration see `default/main.yml`.
 
-Dependencies
-------------
+```yaml
+# Default domain, used for autogenerate missing domain names
+nbdns_default_domain: example.com
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+# List of nameservers for the DNS zones. Used to generate the 'NS' records
+nbdns_nameserver:
+- ns.example.com
+
+# Email address for 'SOA' entry. The '@' will be replaced by '.' automatically.
+nbdns_email: ns@example.com
+
+# Folder for placing the zone files. Folder shoud be already present.
+nbdns_zones_path: /etc/bind
+
+# List of the DNS zones. Define 'subnet' if it is a reverse zone. 'entries' allows to specify additional records.
+nbdns_zones:
+- domain: example.com
+  entries:
+  - name: www.example.com
+    type: CNAME
+    value: host01.example.com.
+- domain: 2.0.192.in-addr.arpa
+  subnet: 192.0.2.0/24
+
+# URL to the Netbox API
+nbdns_netbox_api_url: https://netbox.example.com/api
+
+# Token to authenticate against the Netbox API
+nbdns_netbox_token: 0123456789abcdef0123456789abcdef01234567
+```
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: nameservers
+  handlers:
+  - name: restart nameserver
+    service:
+      name: ...
+      state: restarted
+    become: yes
+  roles:
+  - role: netbox-to-dns
+```
 
 License
 -------
